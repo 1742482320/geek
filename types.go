@@ -216,3 +216,52 @@ type CommentsParams struct {
 	Prev string `json:"prev"`
 	Size int    `json:"size"`
 }
+
+// LoginResp LoginResp
+//easyjson:json
+type LoginResp struct {
+	Code  int           `json:"code"`
+	Data  *UserInfo     `json:"data"`
+	Error []interface{} `json:"error"`
+	Extra struct {
+		Cost      float64 `json:"cost"`
+		RequestID string  `json:"request-id"`
+	} `json:"extra"`
+}
+
+// UserInfo UserInfo
+//easyjson:json
+type UserInfo struct {
+	UID        int    `json:"uid"`
+	Type       int    `json:"type"`
+	Cellphone  string `json:"cellphone"`
+	Country    string `json:"country"`
+	Nickname   string `json:"nickname"`
+	Avatar     string `json:"avatar"`
+	Gender     string `json:"gender"`
+	Birthday   string `json:"birthday"`
+	Graduation string `json:"graduation"`
+	Profession string `json:"profession"`
+	Industry   string `json:"industry"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	Address    string `json:"address"`
+	Mobile     string `json:"mobile"`
+	Contact    string `json:"contact"`
+	Position   string `json:"position"`
+	Passworded bool   `json:"passworded"`
+	CreateTime int64  `json:"create_time"`
+	OssToken   string `json:"oss_token"`
+}
+
+// LoginParams LoginParams
+//easyjson:json
+type LoginParams struct {
+	Country   int    `json:"country"`
+	Cellphone string `json:"cellphone"`
+	Password  string `json:"password"`
+	Captcha   string `json:"captcha"`
+	Remember  int    `json:"remember"`
+	Platform  int    `json:"platform"`
+	Appid     int    `json:"appid"`
+}

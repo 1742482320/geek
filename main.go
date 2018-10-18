@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,11 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/chromedp"
-	"github.com/chromedp/chromedp/runner"
 )
 
 var (
@@ -35,96 +29,41 @@ func main() {
 		panic("请输入用户，密码")
 	}
 
-	cookies, err := LoginByChrome(USER, PASSWD)
+	header := http.Header{}
+
+	header.Add("origin", "https://account.geekbang.org")
+	header.Add("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
+
+	geekCli := NewGeekClient(header)
+
+	_, cookies, err := geekCli.Login(USER, PASSWD)
 	if err != nil {
+
 		panic(err)
 	}
 
-	// fmt.Println(products.Data)
-	do(cookies)
-}
+	// log.Println(info)
 
-// LoginByChrome LoginByChrome
-func LoginByChrome(user, pass string) ([]*network.Cookie, error) {
-	// create context
-	ctxt, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// create chrome instance
-	c, err := chromedp.New(ctxt, chromedp.WithLog(log.Printf), chromedp.WithRunnerOptions(
-		runner.Headless,
-		runner.DisableGPU))
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// run task list
-	var cookies []*network.Cookie
-
-	err = c.Run(ctxt, geekLogin(user, pass, &cookies))
-	if err != nil {
-		return nil, err
-	}
-
-	// shutdown chrome
-	err = c.Shutdown(ctxt)
-	if err != nil {
-		return nil, err
-	}
-
-	// wait for chrome to finish
-	c.Wait()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	return cookies, nil
-}
-
-func geekLogin(user, pass string, cookies *[]*network.Cookie) chromedp.Tasks {
-
-	return chromedp.Tasks{
-		chromedp.Navigate(`https://account.geekbang.org/signin`),
-		chromedp.WaitVisible(`.nw-phone-container`, chromedp.ByQuery),
-		chromedp.SendKeys(".nw-phone-wrap input", user, chromedp.ByQuery),
-		chromedp.SendKeys(".input-wrap input", pass, chromedp.ByQuery),
-		chromedp.Click(".mybtn", chromedp.ByQuery),
-		// chromedp.Sleep(2 * time.Second), // wait for animation to finish
-		chromedp.WaitVisible(".account-sidebar", chromedp.ByQuery),
-
-		chromedp.ActionFunc(func(ctx context.Context, h cdp.Executor) error {
-
-			cs, err := network.GetCookies().Do(ctx, h)
-			if err != nil {
-				return err
-			}
-
-			*cookies = cs
-
-			return nil
-		}),
-	}
-
-}
-
-func do(cookies []*network.Cookie) {
-	header := http.Header{}
 	sks := []string{}
 	for _, c := range cookies {
 		sks = append(sks, c.Name+"="+c.Value)
 	}
 
 	header.Add("cookie", strings.Join(sks, "; "))
-	header.Add("origin", "https://time.geekbang.org")
-	header.Add("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36")
 
-	fmt.Println("header", header)
+	geekCli = NewGeekClient(geekCli.Header)
 
-	geekCli := NewGeekClient(header)
+	// cookies, err := LoginByChrome(USER, PASSWD)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Println(products.Data)
+	do(geekCli)
+}
+
+func do(geekCli *GeekClient) {
+
 	products, err := geekCli.MyProducts()
 	if err != nil {
 		panic(err)

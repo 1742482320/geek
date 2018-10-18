@@ -25,16 +25,17 @@ func NewGeekClient(h http.Header) *GeekClient {
 	}
 }
 
-func (p *GeekClient) doHTTP(method, url string, params interface{}) ([]byte, error) {
+func (p *GeekClient) doHTTP(method, url string, params interface{}) ([]byte, *http.Response, error) {
 
 	fmt.Println("cli -> ", url, params)
 
 	var body io.Reader
 
 	if params != nil {
+
 		data, err := json.Marshal(params)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		fmt.Println(string(data))
@@ -48,7 +49,7 @@ func (p *GeekClient) doHTTP(method, url string, params interface{}) ([]byte, err
 	//提交请求
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	req.Header = p.Header
@@ -56,22 +57,57 @@ func (p *GeekClient) doHTTP(method, url string, params interface{}) ([]byte, err
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 
+	fmt.Println(resp.Cookies)
+
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return data, nil
+	return data, resp, nil
+}
+
+// Login Login
+func (p *GeekClient) Login(user, pass string) (*UserInfo, []*http.Cookie, error) {
+	var res *LoginResp
+
+	args := &LoginParams{}
+	args.Country = 86
+	args.Appid = 1
+	args.Cellphone = user
+	args.Password = pass
+	args.Platform = 3
+
+	data, resp, err := p.doHTTP("POST", "https://account.geekbang.org/account/ticket/login", args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fmt.Println("dd", string(data))
+
+	err = json.Unmarshal(data, &res)
+	// err = res.UnmarshalJSON(data)
+	if err != nil {
+		fmt.Println(string(data))
+		return nil, nil, err
+	}
+
+	if res.Code != 0 {
+		return nil, nil, fmt.Errorf("%v", res.Error)
+	}
+
+	res.Data.OssToken = resp.Header.Get("Set-Ticket")
+	return res.Data, resp.Cookies(), nil
 }
 
 // MyProducts MyProducts
 func (p *GeekClient) MyProducts() ([]*ProductsData, error) {
 	var res *MyProductsResp
-	data, err := p.doHTTP("POST", "/serv/v1/my/products/all", nil)
+	data, _, err := p.doHTTP("POST", "/serv/v1/my/products/all", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +180,7 @@ func (p *GeekClient) ColumnArticles(id int, prev int64) (*ArticlesResp, error) {
 
 	args.Sample = true
 
-	data, err := p.doHTTP("POST", "/serv/v1/column/articles", args)
+	data, _, err := p.doHTTP("POST", "/serv/v1/column/articles", args)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +206,7 @@ func (p *GeekClient) ArticleInfo(id int) (*ArticleInfo, error) {
 	args := &ID{}
 	args.ID = id
 
-	data, err := p.doHTTP("POST", "/serv/v1/article", args)
+	data, _, err := p.doHTTP("POST", "/serv/v1/article", args)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +227,8 @@ func (p *GeekClient) ArticleInfo(id int) (*ArticleInfo, error) {
 
 // GetResource GetResource
 func (p *GeekClient) GetResource(url string) ([]byte, error) {
-	return p.doHTTP("GET", url, nil)
+	body, _, err := p.doHTTP("GET", url, nil)
+	return body, err
 }
 
 // ArticleCommentsAll ArticleCommentsAll
@@ -233,7 +270,7 @@ func (p *GeekClient) ArticleComments(id int, prev string) (*CommentsResp, error)
 	args.Prev = prev
 	args.Size = 100
 
-	data, err := p.doHTTP("POST", "/serv/v1/comments", args)
+	data, _, err := p.doHTTP("POST", "/serv/v1/comments", args)
 	if err != nil {
 		return nil, err
 	}
