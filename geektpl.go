@@ -77,7 +77,7 @@ var CommentInfotemplate = `<li data-v-87ffcada="" class="comment-item"><img src=
 	<div class="control">
 		 <a href="javascript:;" class="btn-praise"><i class="iconfont"></i> <span>{{LikeCount}}</span></a></div>
 	</div>
-	<div class="bd">{{comment_content}}</div> <span class="time">{{CommentCtime}}</span>
+	<div class="bd">{{CommentContent}}</div> <span class="time">{{CommentCtime}}</span>
 	<div class="reply">
 	{{replies}}
 	</div>

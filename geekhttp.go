@@ -363,7 +363,7 @@ func (p *GeekClient) ArticleComments(id int, prev string) (*CommentsResp, error)
 		return nil, err
 	}
 
-	fmt.Println("comment data", string(data))
+	// fmt.Println("comment data", string(data))
 
 	err = json.Unmarshal(data, &res)
 	// err = res.UnmarshalJSON(data)
