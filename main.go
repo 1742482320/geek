@@ -209,9 +209,8 @@ func do(geekCli *GeekClient) {
 
 				fmt.Println("write html ", htmlPath)
 
-				break
 			}
-			break
+
 		}
 
 	}
