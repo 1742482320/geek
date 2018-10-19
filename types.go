@@ -78,24 +78,24 @@ type ArticlesResp struct {
 // ArticlesList ArticlesList
 //easyjson:json
 type ArticlesList struct {
-	List []*ArticleItem `json:"list"`
+	List []*ArticleInfo `json:"list"`
 	Page Page           `json:"page"`
 }
 
-// ArticleItem ArticleItem
-//easyjson:json
-type ArticleItem struct {
-	ArticleSubtitle     string `json:"article_subtitle"`
-	ArticleCtime        int    `json:"article_ctime"`
-	ID                  int    `json:"id"`
-	ArticleCover        string `json:"article_cover"`
-	ArticleTitle        string `json:"article_title"`
-	ArticleSummary      string `json:"article_summary"`
-	HadViewed           bool   `json:"had_viewed"`
-	ArticleCouldPreview bool   `json:"article_could_preview"`
-	ChapterID           string `json:"chapter_id"`
-	Score               int64  `json:"score"`
-}
+// // ArticleItem ArticleItem
+// //easyjson:json
+// type ArticleItem struct {
+// 	ArticleSubtitle     string `json:"article_subtitle"`
+// 	ArticleCtime        int    `json:"article_ctime"`
+// 	ID                  int    `json:"id"`
+// 	ArticleCover        string `json:"article_cover"`
+// 	ArticleTitle        string `json:"article_title"`
+// 	ArticleSummary      string `json:"article_summary"`
+// 	HadViewed           bool   `json:"had_viewed"`
+// 	ArticleCouldPreview bool   `json:"article_could_preview"`
+// 	ChapterID           string `json:"chapter_id"`
+// 	Score               int64  `json:"score"`
+// }
 
 // ArticleInfoResp ArticleInfoResp
 //easyjson:json
@@ -109,46 +109,72 @@ type ArticleInfoResp struct {
 // ArticleInfo ArticleInfo
 //easyjson:json
 type ArticleInfo struct {
-	ArticleSubtitle     string       `json:"article_subtitle"`
-	Sku                 string       `json:"sku"`
-	ColumnHadSub        bool         `json:"column_had_sub"`
-	AudioTitle          string       `json:"audio_title"`
-	ViewCount           int          `json:"view_count"`
-	VideoCover          string       `json:"video_cover"`
-	AudioDownloadURL    string       `json:"audio_download_url"`
-	AudioTime           string       `json:"audio_time"`
-	VideoMedia          string       `json:"video_media"`
-	ProductType         string       `json:"product_type"`
-	ArticleContent      string       `json:"article_content"`
-	LikeCount           int          `json:"like_count"`
-	VideoHeight         int          `json:"video_height"`
-	ArticleTitle        string       `json:"article_title"`
-	AudioSize           int          `json:"audio_size"`
-	ArticleSharetitle   string       `json:"article_sharetitle"`
-	AuthorName          string       `json:"author_name"`
-	ArticleCtime        int64        `json:"article_ctime"`
-	ID                  int          `json:"id"`
-	ArticleCover        string       `json:"article_cover"`
-	AudioURL            string       `json:"audio_url"`
-	VideoSize           int          `json:"video_size"`
-	ChapterID           string       `json:"chapter_id"`
-	HadLiked            bool         `json:"had_liked"`
-	ColumnIsExperience  bool         `json:"column_is_experience"`
-	HadViewed           bool         `json:"had_viewed"`
-	Score               string       `json:"score"`
-	ColumnBgcolor       string       `json:"column_bgcolor"`
-	ColumnCover         string       `json:"column_cover"`
-	VideoTime           string       `json:"video_time"`
-	AudioMd5            string       `json:"audio_md5"`
-	AudioTimeArr        AudioTimeArr `json:"audio_time_arr"`
-	Cid                 int          `json:"cid"`
-	ArticleCoverHidden  bool         `json:"article_cover_hidden"`
-	ArticleSummary      string       `json:"article_summary"`
-	ArticleCouldPreview bool         `json:"article_could_preview"`
-	AudioDubber         string       `json:"audio_dubber"`
-	VideoWidth          int          `json:"video_width"`
-	ColumnID            int          `json:"column_id"`
-	ArticlePosterWxlite string       `json:"article_poster_wxlite"`
+	ArticleSubtitle     string         `json:"article_subtitle"`
+	Sku                 string         `json:"sku"`
+	ColumnHadSub        bool           `json:"column_had_sub"`
+	AudioTitle          string         `json:"audio_title"`
+	ViewCount           int            `json:"view_count"`
+	VideoCover          string         `json:"video_cover"`
+	AudioDownloadURL    string         `json:"audio_download_url"`
+	AudioTime           string         `json:"audio_time"`
+	VideoMedia          string         `json:"video_media"`
+	ProductType         string         `json:"product_type"`
+	ArticleContent      string         `json:"article_content"`
+	LikeCount           int            `json:"like_count"`
+	VideoHeight         int            `json:"video_height"`
+	ArticleTitle        string         `json:"article_title"`
+	AudioSize           int            `json:"audio_size"`
+	ArticleSharetitle   string         `json:"article_sharetitle"`
+	AuthorName          string         `json:"author_name"`
+	ArticleCtime        int64          `json:"article_ctime"`
+	ID                  int            `json:"id"`
+	ArticleCover        string         `json:"article_cover"`
+	AudioURL            string         `json:"audio_url"`
+	VideoSize           int            `json:"video_size"`
+	ChapterID           string         `json:"chapter_id"`
+	HadLiked            bool           `json:"had_liked"`
+	ColumnIsExperience  bool           `json:"column_is_experience"`
+	HadViewed           bool           `json:"had_viewed"`
+	Score               interface{}    `json:"score"`
+	ColumnBgcolor       string         `json:"column_bgcolor"`
+	ColumnCover         string         `json:"column_cover"`
+	VideoTime           string         `json:"video_time"`
+	AudioMd5            string         `json:"audio_md5"`
+	AudioTimeArr        AudioTimeArr   `json:"audio_time_arr"`
+	Cid                 int            `json:"cid"`
+	ArticleCoverHidden  bool           `json:"article_cover_hidden"`
+	ArticleSummary      string         `json:"article_summary"`
+	ArticleCouldPreview bool           `json:"article_could_preview"`
+	AudioDubber         string         `json:"audio_dubber"`
+	VideoWidth          int            `json:"video_width"`
+	ColumnID            int            `json:"column_id"`
+	ArticlePosterWxlite string         `json:"article_poster_wxlite"`
+	VideoMediaMap       *VideoMediaMap `json:"video_media_map"`
+	VideoTotalSeconds   int            `json:"video_total_seconds"`
+	VideoTimeArr        VideoTimeArr   `json:"video_time_arr"`
+	VideoPlaySeconds    int            `json:"video_play_seconds"`
+}
+
+// VideoTimeArr VideoTimeArr
+//easyjson:json
+type VideoTimeArr struct {
+	M string `json:"m"`
+	S string `json:"s"`
+	H string `json:"h"`
+}
+
+// VideoMediaMap VideoMediaMap
+//easyjson:json
+type VideoMediaMap struct {
+	Hd Media `json:"hd"`
+	Sd Media `json:"sd"`
+}
+
+// Media Media
+//easyjson:json
+type Media struct {
+	Size int    `json:"size"`
+	URL  string `json:"url"`
 }
 
 // AudioTimeArr AudioTimeArr
@@ -264,4 +290,28 @@ type LoginParams struct {
 	Remember  int    `json:"remember"`
 	Platform  int    `json:"platform"`
 	Appid     int    `json:"appid"`
+}
+
+// MyProductListResp MyProductListResp
+//easyjson:json
+type MyProductListResp struct {
+	Error []interface{}  `json:"error"`
+	Data  *MyProductList `json:"data"`
+	Code  int            `json:"code"`
+	Extra []interface{}  `json:"extra"`
+}
+
+// MyProductList MyProductList
+//easyjson:json
+type MyProductList struct {
+	List []*ColumnItem `json:"list"`
+	Page Page          `json:"page"`
+}
+
+// MyProductListParams MyProductListParams
+//easyjson:json
+type MyProductListParams struct {
+	NavID int   `json:"nav_id"`
+	Prev  int64 `json:"prev"`
+	Size  int   `json:"size"`
 }

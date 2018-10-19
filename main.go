@@ -42,16 +42,23 @@ func main() {
 		panic(err)
 	}
 
-	// log.Println(info)
+	// // log.Println(info)
 
 	sks := []string{}
 	for _, c := range cookies {
 		sks = append(sks, c.Name+"="+c.Value)
 	}
 
+	// sks = append(sks, "GCESS=BAUEAAAAAAkBAQgBAwIEJ0DJWwoEAAAAAAEEu6APAAYEwnL9kAwBAQsCBAAEBIBRAQADBCdAyVsHBJ2WMgs-")
+	// sks = append(sks, "GCID=7bff37f-22bec2f-2fbe82a-0203dde")
+	// sks = append(sks, "SERVERID=fe79ab1762e8fabea8cbf989406ba8f4|1539915816|1539915647")
+	// sks = append(sks, "_ga=GA1.2.1560661455.1535373390")
+	// sks = append(sks, "_gid=GA1.2.1481632964.1539915651")
+
 	header.Add("cookie", strings.Join(sks, "; "))
 
 	geekCli = NewGeekClient(geekCli.Header)
+	// geekCli := NewGeekClient(header)
 
 	// cookies, err := LoginByChrome(USER, PASSWD)
 	// if err != nil {
@@ -69,64 +76,98 @@ func do(geekCli *GeekClient) {
 		panic(err)
 	}
 
-	articleIDs := []int{}
+	// articleIDs := []int{}
 
-	for _, item := range products[0].List {
-		articleList, err := geekCli.ColumnArticlesAll(item.Extra.ColumnID)
-		if err != nil {
-			log.Fatal(err)
+	for _, product := range products {
+
+		fmt.Println("product.Title", product.ID)
+
+		switch product.ID {
+		case 1, 2, 3:
+		default:
+			fmt.Println("skip", product.Title)
+			continue
 		}
 
-		fmt.Println("get articleList", len(articleList))
-		// break
+		for _, item := range product.List {
 
-		for _, v := range articleList {
-			info, err := geekCli.ArticleInfo(v.ID)
+			fmt.Println("item.Title", item.Title)
+
+			articleList, err := geekCli.ColumnArticlesAll(item.Extra.ColumnID)
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			// fmt.Println("get info", info)
+			fmt.Println("get articleList", len(articleList))
+			// break
 
-			articleIDs = append(articleIDs, info.ID)
+			for _, v := range articleList {
 
-			item.Extra.ColumnTitle = strings.Replace(item.Extra.ColumnTitle, "/", "|", -1)
-			info.ArticleTitle = strings.Replace(info.ArticleTitle, "/", "|", -1)
+				item.Extra.ColumnTitle = strings.Replace(item.Extra.ColumnTitle, "/", "|", -1)
+				v.ArticleTitle = strings.Replace(v.ArticleTitle, "/", "|", -1)
 
-			dir := fmt.Sprintf("./data/columns/%s/%s", item.Extra.ColumnTitle, info.ArticleTitle)
-			os.MkdirAll(dir, os.ModePerm)
+				dir := fmt.Sprintf("./data/%s/%s/%s", product.Title, item.Extra.ColumnTitle, v.ArticleTitle)
 
-			// err = SaveJSON(filepath.Join(dir, info.ArticleTitle+".json"), info)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
+				// check exists
+				if _, err := os.Stat(dir); os.IsNotExist(err) {
+					os.MkdirAll(dir, os.ModePerm)
+				} else {
+					continue
+				}
 
-			commentList, err := geekCli.ArticleCommentsAll(info.ID)
-			if err != nil {
-				log.Fatal(err)
+				err = SaveJSON(filepath.Join(dir, v.ArticleTitle+".json"), v)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				info, err := geekCli.ArticleInfo(v.ID)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// err = SaveJSON(filepath.Join(dir, info.ArticleTitle+".json"), info)
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+
+				commentList, err := geekCli.ArticleCommentsAll(info.ID)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				// err = SaveJSON(filepath.Join(dir, "commentList.json"), commentList)
+				// if err != nil {
+				// 	log.Fatal(err)
+				// }
+
+				var html string
+				if info.VideoMediaMap != nil {
+					html = TplVideoHTML(info, commentList)
+
+					// err = HLSdownload(v.VideoMediaMap.Hd.URL, filepath.Join(dir, v.ArticleTitle+".mp4"))
+					// if err != nil {
+					// 	log.Fatal(err)
+					// }
+				} else {
+					html = TplArticleHTML(info, commentList)
+				}
+
+				ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".html"), []byte(html), os.ModePerm)
+
+				// // mp3, err := geekCli.GetResource(info.AudioDownloadURL)
+				// // if err != nil {
+				// // 	log.Fatal(err)
+				// // }
+				// // // mp3
+				// // err = ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".mp3"), mp3, os.ModePerm)
+				// // if err != nil {
+				// // 	log.Fatal(err)
+				// // }
+
 			}
-
-			// err = SaveJSON(filepath.Join(dir, "commentList.json"), commentList)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
-
-			html := TplArticleHTML(info, commentList)
-			ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".html"), []byte(html), os.ModePerm)
-
-			// mp3, err := geekCli.GetResource(info.AudioDownloadURL)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
-			// // mp3
-			// err = ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".mp3"), mp3, os.ModePerm)
-			// if err != nil {
-			// 	log.Fatal(err)
-			// }
-
 		}
+
 	}
-
 }
 
 // SaveJSON SaveJSON

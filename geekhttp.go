@@ -61,8 +61,6 @@ func (p *GeekClient) doHTTP(method, url string, params interface{}) ([]byte, *ht
 	}
 	defer resp.Body.Close()
 
-	fmt.Println(resp.Cookies)
-
 	data, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, err
@@ -107,7 +105,7 @@ func (p *GeekClient) Login(user, pass string) (*UserInfo, []*http.Cookie, error)
 // MyProducts MyProducts
 func (p *GeekClient) MyProducts() ([]*ProductsData, error) {
 	var res *MyProductsResp
-	data, _, err := p.doHTTP("POST", "/serv/v1/my/products/all", nil)
+	data, _, err := p.doHTTP("POST", "/serv/v1/my/products/all", map[string]string{})
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +125,79 @@ func (p *GeekClient) MyProducts() ([]*ProductsData, error) {
 		return nil, fmt.Errorf("我的订阅页面有变化")
 	}
 
+	for i, nav := range res.Data {
+		if nav.Page.More {
+
+			l := len(nav.List)
+
+			list, err := p.MyProductListAll(nav.ID, nav.List[l-1].Score)
+			if err != nil {
+				return nil, err
+			}
+
+			res.Data[i].List = append(res.Data[i].List, list...)
+		}
+	}
+
+	return res.Data, nil
+}
+
+// MyProductListAll MyProductListAll
+func (p *GeekClient) MyProductListAll(id int, preID int64) ([]*ColumnItem, error) {
+
+	list := []*ColumnItem{}
+
+	for {
+		res, err := p.MyProductList(id, preID)
+		if err != nil {
+			return nil, err
+		}
+
+		list = append(list, res.List...)
+
+		if !res.Page.More {
+			break
+		}
+
+		l := len(res.List)
+		preID = res.List[l-1].Score
+	}
+
+	return list, nil
+}
+
+// MyProductList MyProductList
+func (p *GeekClient) MyProductList(id int, prev int64) (*MyProductList, error) {
+	var res *MyProductListResp
+
+	args := &MyProductListParams{}
+	args.NavID = id
+	args.Prev = prev
+	args.Size = 10
+
+	data, _, err := p.doHTTP("POST", "/serv/v1/my/products/list", args)
+	if err != nil {
+		return nil, err
+	}
+
+	err = json.Unmarshal(data, &res)
+	// err = res.UnmarshalJSON(data)
+	if err != nil {
+		fmt.Println(string(data))
+		return nil, err
+	}
+
+	if res.Code != 0 {
+		return nil, fmt.Errorf("%v", res.Error)
+	}
+
 	return res.Data, nil
 }
 
 // ColumnArticlesAll ColumnArticlesAll
-func (p *GeekClient) ColumnArticlesAll(id int) ([]*ArticleItem, error) {
+func (p *GeekClient) ColumnArticlesAll(id int) ([]*ArticleInfo, error) {
 
-	list := []*ArticleItem{}
+	list := []*ArticleInfo{}
 
 	var (
 		preID int64
@@ -147,12 +211,36 @@ func (p *GeekClient) ColumnArticlesAll(id int) ([]*ArticleItem, error) {
 
 		list = append(list, res.Data.List...)
 
+		fmt.Println("list", res.Data.Page, len(res.Data.List))
 		if !res.Data.Page.More {
 			break
 		}
 
 		l := len(res.Data.List)
-		preID = res.Data.List[l-1].Score
+
+		// fmt.Println(res.Data.List[l-1], res.Data.List[l-1].Score, reflect.ValueOf(res.Data.List[l-1].Score).Kind())
+
+		// sb geek 返回值有类型不一式的情况
+		switch res.Data.List[l-1].Score.(type) {
+		case string:
+
+			preID, err = strconv.ParseInt(res.Data.List[l-1].Score.(string), 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		case int:
+			preID = int64(res.Data.List[l-1].Score.(int))
+		case int32:
+			preID = int64(res.Data.List[l-1].Score.(int32))
+		case int64:
+			preID = int64(res.Data.List[l-1].Score.(int64))
+		case float64:
+			preID = int64(res.Data.List[l-1].Score.(float64))
+
+		default:
+
+		}
+
 	}
 
 	return list, nil
