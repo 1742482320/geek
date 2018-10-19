@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/valyala/fasttemplate"
@@ -20,6 +21,10 @@ func TplVideoHTML(info *ArticleInfo, commentList []*Comment) string {
 	m["VideoMediaURL"] = info.VideoMediaMap.Hd.URL
 	// m["Column"] = info.AR
 	m["comments"] = TplCommentList(commentList)
+	m["VideoType"] = "auto"
+	if strings.HasPrefix(info.VideoMediaMap.Hd.URL, "http") {
+		m["VideoType"] = "hls"
+	}
 
 	buf.WriteString(t.ExecuteString(m))
 

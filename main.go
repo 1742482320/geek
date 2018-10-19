@@ -17,13 +17,15 @@ var (
 	PASSWD     string
 	SaveStatic bool
 	SaveJSON   bool
+	Force      bool
 )
 
 func init() {
 	flag.StringVar(&USER, "u", "", "-u user")
 	flag.StringVar(&PASSWD, "p", "", "-p password")
-	flag.BoolVar(&SaveStatic, "static", false, "-static 存资源文件")
+	flag.BoolVar(&SaveStatic, "save", false, "-save 存资源文件")
 	flag.BoolVar(&SaveJSON, "json", false, "-json 存json")
+	flag.BoolVar(&Force, "f", false, "-f 强制覆盖")
 }
 
 func main() {
@@ -116,7 +118,10 @@ func do(geekCli *GeekClient) {
 				if _, err := os.Stat(dir); os.IsNotExist(err) {
 					os.MkdirAll(dir, os.ModePerm)
 				} else {
-					continue
+					if !Force {
+						continue
+					}
+
 				}
 
 				info, err := geekCli.ArticleInfo(v.ID)
@@ -129,6 +134,69 @@ func do(geekCli *GeekClient) {
 					log.Fatal(err)
 				}
 
+				if SaveJSON {
+					err = SaveJSONInfo(filepath.Join(dir, "data.json"), v)
+					if err != nil {
+						log.Fatal(err)
+					}
+					infopath := filepath.Join(dir, "info.json")
+					err = SaveJSONInfo(infopath, info)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println("write json ", infopath)
+
+					comentPath := filepath.Join(dir, "commentList.json")
+					err = SaveJSONInfo(comentPath, commentList)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					fmt.Println("write json ", comentPath)
+				}
+
+				if SaveStatic {
+
+					if strings.HasPrefix(info.AudioDownloadURL, "http") {
+
+						// mp3
+						mp3Path := filepath.Join(dir, info.ArticleTitle+".mp3")
+						if _, err := os.Stat(mp3Path); os.IsNotExist(err) {
+							mp3, err := geekCli.GetResource(info.AudioDownloadURL)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							err = ioutil.WriteFile(mp3Path, mp3, os.ModePerm)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							fmt.Println("write mp3 ", mp3Path)
+						}
+
+						// info.AudioDownloadURL = "./" + filepath.Base(mp3Path)
+					}
+
+					if info.VideoMediaMap != nil {
+
+						mp4Path := filepath.Join(dir, v.ArticleTitle+".mp4")
+
+						if _, err := os.Stat(mp4Path); os.IsNotExist(err) {
+
+							err = HLSdownload(info.VideoMediaMap.Hd.URL, mp4Path)
+							if err != nil {
+								log.Fatal(err)
+							}
+
+							fmt.Println("write mp4 ", mp4Path)
+						}
+
+						// info.VideoMediaMap.Hd.URL = "./" + filepath.Base(mp4Path)
+					}
+				}
+
 				var html string
 				if info.VideoMediaMap != nil {
 					html = TplVideoHTML(info, commentList)
@@ -136,49 +204,14 @@ func do(geekCli *GeekClient) {
 					html = TplArticleHTML(info, commentList)
 				}
 
-				ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".html"), []byte(html), os.ModePerm)
+				htmlPath := filepath.Join(dir, info.ArticleTitle+".html")
+				ioutil.WriteFile(htmlPath, []byte(html), os.ModePerm)
 
-				if SaveJSON {
-					// err = SaveJSONInfo(filepath.Join(dir, v.ArticleTitle+".json"), v)
-					// if err != nil {
-					// 	log.Fatal(err)
-					// }
-					err = SaveJSONInfo(filepath.Join(dir, "info.json"), info)
-					if err != nil {
-						log.Fatal(err)
-					}
+				fmt.Println("write html ", htmlPath)
 
-					err = SaveJSONInfo(filepath.Join(dir, "commentList.json"), commentList)
-					if err != nil {
-						log.Fatal(err)
-					}
-				}
-
-				if SaveStatic {
-
-					if strings.HasPrefix(info.AudioDownloadURL, "http") {
-						mp3, err := geekCli.GetResource(info.AudioDownloadURL)
-						if err != nil {
-							log.Fatal(err)
-						}
-						// mp3
-						err = ioutil.WriteFile(filepath.Join(dir, info.ArticleTitle+".mp3"), mp3, os.ModePerm)
-						if err != nil {
-							log.Fatal(err)
-						}
-					}
-
-					if info.VideoMediaMap != nil {
-						html = TplVideoHTML(info, commentList)
-
-						err = HLSdownload(v.VideoMediaMap.Hd.URL, filepath.Join(dir, v.ArticleTitle+".mp4"))
-						if err != nil {
-							log.Fatal(err)
-						}
-					}
-				}
-
+				break
 			}
+			break
 		}
 
 	}
