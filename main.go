@@ -161,7 +161,7 @@ func do(geekCli *GeekClient) {
 					if strings.HasPrefix(info.AudioDownloadURL, "http") {
 
 						// mp3
-						mp3Path := filepath.Join(dir, info.ArticleTitle+".mp3")
+						mp3Path := filepath.Join(dir, v.ArticleTitle+".mp3")
 						if _, err := os.Stat(mp3Path); os.IsNotExist(err) {
 							mp3, err := geekCli.GetResource(info.AudioDownloadURL)
 							if err != nil {
@@ -204,7 +204,7 @@ func do(geekCli *GeekClient) {
 					html = TplArticleHTML(info, commentList)
 				}
 
-				htmlPath := filepath.Join(dir, info.ArticleTitle+".html")
+				htmlPath := filepath.Join(dir, v.ArticleTitle+".html")
 				ioutil.WriteFile(htmlPath, []byte(html), os.ModePerm)
 
 				fmt.Println("write html ", htmlPath)
