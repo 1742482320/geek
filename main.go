@@ -204,7 +204,7 @@ func do(geekCli *GeekClient) {
 					html = TplArticleHTML(info, commentList)
 				}
 
-				htmlPath := filepath.Join(dir, v.ArticleTitle+".html")
+				htmlPath := filepath.Join(dir, "index.html")
 				ioutil.WriteFile(htmlPath, []byte(html), os.ModePerm)
 
 				fmt.Println("write html ", htmlPath)
