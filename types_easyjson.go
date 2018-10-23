@@ -4,6 +4,7 @@ package main
 
 import (
 	json "encoding/json"
+
 	easyjson "github.com/mailru/easyjson"
 	jlexer "github.com/mailru/easyjson/jlexer"
 	jwriter "github.com/mailru/easyjson/jwriter"
@@ -226,32 +227,6 @@ func easyjson6601e8cdDecodeGeekband2(in *jlexer.Lexer, out *UserInfo) {
 			out.Nickname = string(in.String())
 		case "avatar":
 			out.Avatar = string(in.String())
-		case "gender":
-			out.Gender = string(in.String())
-		case "birthday":
-			out.Birthday = string(in.String())
-		case "graduation":
-			out.Graduation = string(in.String())
-		case "profession":
-			out.Profession = string(in.String())
-		case "industry":
-			out.Industry = string(in.String())
-		case "email":
-			out.Email = string(in.String())
-		case "name":
-			out.Name = string(in.String())
-		case "address":
-			out.Address = string(in.String())
-		case "mobile":
-			out.Mobile = string(in.String())
-		case "contact":
-			out.Contact = string(in.String())
-		case "position":
-			out.Position = string(in.String())
-		case "passworded":
-			out.Passworded = bool(in.Bool())
-		case "create_time":
-			out.CreateTime = int64(in.Int64())
 		case "oss_token":
 			out.OssToken = string(in.String())
 		default:
@@ -327,136 +302,6 @@ func easyjson6601e8cdEncodeGeekband2(out *jwriter.Writer, in UserInfo) {
 			out.RawString(prefix)
 		}
 		out.String(string(in.Avatar))
-	}
-	{
-		const prefix string = ",\"gender\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Gender))
-	}
-	{
-		const prefix string = ",\"birthday\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Birthday))
-	}
-	{
-		const prefix string = ",\"graduation\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Graduation))
-	}
-	{
-		const prefix string = ",\"profession\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Profession))
-	}
-	{
-		const prefix string = ",\"industry\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Industry))
-	}
-	{
-		const prefix string = ",\"email\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Email))
-	}
-	{
-		const prefix string = ",\"name\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Name))
-	}
-	{
-		const prefix string = ",\"address\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Address))
-	}
-	{
-		const prefix string = ",\"mobile\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Mobile))
-	}
-	{
-		const prefix string = ",\"contact\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Contact))
-	}
-	{
-		const prefix string = ",\"position\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.String(string(in.Position))
-	}
-	{
-		const prefix string = ",\"passworded\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.Bool(bool(in.Passworded))
-	}
-	{
-		const prefix string = ",\"create_time\":"
-		if first {
-			first = false
-			out.RawString(prefix[1:])
-		} else {
-			out.RawString(prefix)
-		}
-		out.Int64(int64(in.CreateTime))
 	}
 	{
 		const prefix string = ",\"oss_token\":"

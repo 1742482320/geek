@@ -258,26 +258,26 @@ type LoginResp struct {
 // UserInfo UserInfo
 //easyjson:json
 type UserInfo struct {
-	UID        int    `json:"uid"`
-	Type       int    `json:"type"`
-	Cellphone  string `json:"cellphone"`
-	Country    string `json:"country"`
-	Nickname   string `json:"nickname"`
-	Avatar     string `json:"avatar"`
-	Gender     string `json:"gender"`
-	Birthday   string `json:"birthday"`
-	Graduation string `json:"graduation"`
-	Profession string `json:"profession"`
-	Industry   string `json:"industry"`
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	Address    string `json:"address"`
-	Mobile     string `json:"mobile"`
-	Contact    string `json:"contact"`
-	Position   string `json:"position"`
-	Passworded bool   `json:"passworded"`
-	CreateTime int64  `json:"create_time"`
-	OssToken   string `json:"oss_token"`
+	UID       int    `json:"uid"`
+	Type      int    `json:"type"`
+	Cellphone string `json:"cellphone"`
+	Country   string `json:"country"`
+	Nickname  string `json:"nickname"`
+	Avatar    string `json:"avatar"`
+	// Gender     string `json:"gender"`
+	// Birthday   string `json:"birthday"`
+	// Graduation string `json:"graduation"`
+	// Profession string `json:"profession"`
+	// Industry   string `json:"industry"`
+	// Email      string `json:"email"`
+	// Name       string `json:"name"`
+	// Address    string `json:"address"`
+	// Mobile     string `json:"mobile"`
+	// Contact    string `json:"contact"`
+	// Position   string `json:"position"`
+	// Passworded bool   `json:"passworded"`
+	// CreateTime int64  `json:"create_time"`
+	OssToken string `json:"oss_token"`
 }
 
 // LoginParams LoginParams
