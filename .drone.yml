@@ -1,6 +1,6 @@
 pipeline:
   build:
-    image: golang
+    image: golang:1.11.1-alpine3.8
     commands:
       # - go get
-      - echo "hello world"
+      - go build
