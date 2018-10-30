@@ -5,5 +5,3 @@ pipeline:
       - go get
       - go build
       - go test
-      
-  branches: master
