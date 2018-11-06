@@ -9,6 +9,7 @@ var Conf = &Config{}
 type Config struct {
 	DataDir    string
 	GeekUsers  []GeekUser
+	RunOnStart bool     // 启动运行
 	SaveStatic bool     // 保存静态文件
 	SaveJSON   bool     // 保存json数据
 	Force      bool     // 强制更新html

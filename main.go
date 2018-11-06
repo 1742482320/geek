@@ -38,14 +38,21 @@ func main() {
 
 	log.Println(Conf)
 
+	authData, err := ioutil.ReadFile("./auth")
+	if err == nil {
+		Conf.HTTP.BasicAuth = []string{string(authData)}
+	}
+
 	go func() {
 		if err := StartHTTP(Conf); err != nil {
 			panic(err)
 		}
 	}()
 
-	if err := do(); err != nil {
-		panic(err)
+	if Conf.RunOnStart {
+		if err := do(); err != nil {
+			panic(err)
+		}
 	}
 
 	cron := cron.New()
@@ -100,9 +107,11 @@ func do() error {
 
 	log.Println("pass:", user, pass)
 
-	Conf.HTTP.BasicAuth = []string{user + ":" + pass}
+	auth := user + ":" + pass
 
-	if err := ioutil.WriteFile("./auth", []byte(user+":"+pass), os.ModePerm); err != nil {
+	Conf.HTTP.BasicAuth = []string{auth}
+
+	if err := ioutil.WriteFile("./auth", []byte(auth), os.ModePerm); err != nil {
 		return errors.Wrap(err, "WriteFile")
 	}
 	return nil
