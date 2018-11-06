@@ -101,6 +101,10 @@ func do() error {
 	log.Println("pass:", user, pass)
 
 	Conf.HTTP.BasicAuth = []string{user + ":" + pass}
+
+	if err := ioutil.WriteFile("./auth", []byte(user + ":" + pass)], os.ModePerm); err != nil {
+		return errors.Wrap(err, "WriteFile")
+	}
 	return nil
 
 }
