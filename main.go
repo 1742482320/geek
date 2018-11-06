@@ -136,10 +136,25 @@ func updateIndex(dir string) error {
 		// fmt.Println(path, filepath.Base(dir))
 		cpath := strings.Replace(path, dir, "", 1)
 
+		switch {
+		case strings.HasPrefix(cpath, "/."):
+			return nil
+		case strings.HasPrefix(cpath, "/js"):
+			return nil
+		case strings.HasPrefix(cpath, "/css"):
+			return nil
+		case strings.HasPrefix(cpath, "/src"):
+			return nil
+		case strings.HasPrefix(cpath, "/index.html"):
+			return nil
+		case strings.HasPrefix(cpath, "/data.js"):
+			return nil
+		}
+
 		// 父级名称
 		dirName := filepath.Dir(cpath)
 
-		// log.Println("dir:", dir, "path:", path, "cpath:", cpath, "dirname:", dirName)
+		log.Println("dir:", dir, "path:", path, "cpath:", cpath, "dirname:", dirName)
 
 		if !info.IsDir() && !strings.HasSuffix(info.Name(), ".html") {
 			return nil

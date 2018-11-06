@@ -85,7 +85,7 @@ func (p *GeekClient) Login(user, pass string) (*UserInfo, []*http.Cookie, error)
 		return nil, nil, err
 	}
 
-	fmt.Println("dd", string(data))
+	// fmt.Println("dd", string(data))
 
 	err = json.Unmarshal(data, &res)
 	// err = res.UnmarshalJSON(data)
@@ -211,7 +211,7 @@ func (p *GeekClient) ColumnArticlesAll(id int) ([]*ArticleInfo, error) {
 
 		list = append(list, res.Data.List...)
 
-		fmt.Println("list", res.Data.Page, len(res.Data.List))
+		// fmt.Println("list", res.Data.Page, len(res.Data.List))
 		if !res.Data.Page.More {
 			break
 		}
