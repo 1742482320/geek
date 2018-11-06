@@ -38,6 +38,12 @@ func main() {
 
 	log.Println(Conf)
 
+	go func() {
+		if err := StartHTTP(Conf); err != nil {
+			panic(err)
+		}
+	}()
+
 	if err := do(); err != nil {
 		panic(err)
 	}
@@ -49,12 +55,6 @@ func main() {
 		}
 	})
 	cron.Start()
-
-	go func() {
-		if err := StartHTTP(Conf); err != nil {
-			panic(err)
-		}
-	}()
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
