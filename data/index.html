@@ -1,0 +1,49 @@
+﻿<!doctype html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>/</title>
+	<!-- <link href="http://www.jq22.com/jquery/bootstrap-3.3.4.css" rel="stylesheet"> -->
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+
+	<style type="text/css">
+		.jq22-header{margin-bottom: 15px;font-family: "Segoe UI", "Lucida Grande", Helvetica, Arial, "Microsoft YaHei", FreeSans, Arimo, "Droid Sans", "wenquanyi micro hei", "Hiragino Sans GB", "Hiragino Sans GB W3", "FontAwesome", sans-serif;}
+		.jq22-icon{color: #fff;}
+	</style>
+	<!--[if IE]>
+		<script src="http://libs.useso.com/js/html5shiv/3.7/html5shiv.min.js"></script>
+	<![endif]-->
+</head>
+<body>
+	
+		<div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h2>大神来学习了</h2>
+          <div id="treeview1" class=""></div>
+        </div>
+        
+      </div>
+    </div>
+	    
+	
+	<script src="js/jquery.min.js"></script>
+	<script src="js/bootstrap-treeview.min.js"></script>
+	<script src="data.js"></script>
+	<script type="text/javascript">
+
+	  		$(function() {
+        $('#treeview1').treeview({
+          data: IndexData,
+          //enableLinks:true,
+          onNodeSelected: function(event, data) {
+            window.location.href = data.href
+          },
+        });
+
+  		});
+	  	</script>
+</body>
+</html>

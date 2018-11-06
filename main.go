@@ -1,39 +1,229 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
+	"net/smtp"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/pkg/errors"
+	"github.com/robfig/cron"
 )
 
 var (
-	USER       string
-	PASSWD     string
-	SaveStatic bool
-	SaveJSON   bool
-	Force      bool
+	confPath string
 )
 
 func init() {
-	flag.StringVar(&USER, "u", "", "-u user")
-	flag.StringVar(&PASSWD, "p", "", "-p password")
-	flag.BoolVar(&SaveStatic, "save", false, "-save 存资源文件")
-	flag.BoolVar(&SaveJSON, "json", false, "-json 存json")
-	flag.BoolVar(&Force, "f", false, "-f 强制覆盖")
+	flag.StringVar(&confPath, "c", "./config.toml", "-c config.toml")
 }
 
 func main() {
 	flag.Parse()
 
-	if len(USER) == 0 || len(PASSWD) == 0 {
-		panic("请输入用户，密码")
+	InitConfig(confPath)
+
+	log.Println(Conf)
+
+	if err := do(); err != nil {
+		panic(err)
 	}
+
+	cron := cron.New()
+	cron.AddFunc(Conf.CronEntry, func() {
+		if err := do(); err != nil {
+			log.Println(err)
+		}
+	})
+	cron.Start()
+
+	go func() {
+		if err := StartHTTP(Conf); err != nil {
+			panic(err)
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+	for {
+		s := <-c
+		switch s {
+		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			cron.Stop()
+			return
+		case syscall.SIGHUP:
+		default:
+			return
+		}
+	}
+}
+
+func do() error {
+
+	lines, err := downloadAll(Conf)
+	if err != nil {
+		return err
+	}
+
+	if err := updateIndex(Conf.DataDir); err != nil {
+		return err
+	}
+
+	user := fmt.Sprintf("uc%d", rand.Intn(60))
+	pass := RandStringBytesMaskImprSrc(6)
+
+	body := new(bytes.Buffer)
+	body.WriteString(user)
+	body.WriteString(":")
+	body.WriteString(pass)
+	body.WriteString("\n")
+
+	body.WriteString(strings.Join(lines, "\n"))
+
+	// SendToMail
+	if err := SendToMail("大婶，还学得动吗？", body.String()); err != nil {
+		return errors.Wrap(err, "SendToMail")
+	}
+
+	log.Println("pass:", user, pass)
+
+	Conf.HTTP.BasicAuth = []string{user + ":" + pass}
+	return nil
+
+}
+
+// IndexNode IndexNode
+type IndexNode struct {
+	Text       string       `json:"text"`
+	Href       string       `json:"href"`
+	Nodes      []*IndexNode `json:"nodes"`
+	Selectable bool         `json:"selectable"`
+}
+
+func updateIndex(dir string) error {
+
+	root := &IndexNode{
+		Text:  "/",
+		Href:  "/",
+		Nodes: []*IndexNode{},
+	}
+
+	dirs := map[string]*IndexNode{
+		"/": root,
+	}
+
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+
+		if path == dir {
+			return nil
+		}
+
+		dir = strings.TrimLeft(dir, "./")
+		dir = strings.TrimRight(dir, "/")
+		// fmt.Println(path, filepath.Base(dir))
+		cpath := strings.Replace(path, dir, "", 1)
+
+		// 父级名称
+		dirName := filepath.Dir(cpath)
+
+		// log.Println("dir:", dir, "path:", path, "cpath:", cpath, "dirname:", dirName)
+
+		if !info.IsDir() && !strings.HasSuffix(info.Name(), ".html") {
+			return nil
+		}
+
+		var parent *IndexNode
+		var has bool
+
+		if len(cpath) == 0 {
+			return nil
+		}
+
+		parent, has = dirs[dirName]
+		if !has {
+			return errors.New("path not exist")
+		}
+
+		var (
+			selectable bool
+			href       string
+		)
+
+		if info.IsDir() {
+			selectable = false
+		} else {
+			href = cpath
+			selectable = true
+		}
+
+		// 前缀有没有，没有创建
+		node := &IndexNode{
+			Text:       filepath.Base(cpath),
+			Href:       href,
+			Nodes:      []*IndexNode{},
+			Selectable: selectable,
+		}
+		parent.Nodes = append(parent.Nodes, node)
+
+		if info.IsDir() {
+			if _, has = dirs[cpath]; !has {
+				dirs[cpath] = node
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(root.Nodes)
+	if err != nil {
+		return err
+	}
+
+	l := len(data)
+
+	buf := make([]byte, l+15)
+
+	copy(buf, []byte("var IndexData="))
+	copy(buf[14:], data)
+	copy(buf[l+14:], []byte(";"))
+
+	if err := ioutil.WriteFile(filepath.Join(dir, "data.js"), buf, os.ModePerm); err != nil {
+		return errors.Wrap(err, "WriteFile")
+	}
+
+	return nil
+}
+
+func downloadAll(conf *Config) ([]string, error) {
+	lines := []string{}
+	for i := range conf.GeekUsers {
+		res, err := doDownload(conf, conf.GeekUsers[i].User, conf.GeekUsers[i].Pass)
+		if err != nil {
+			return nil, err
+		}
+
+		lines = append(lines, res...)
+	}
+	return lines, nil
+}
+
+func doDownload(conf *Config, user, pass string) ([]string, error) {
 
 	header := http.Header{}
 
@@ -42,69 +232,48 @@ func main() {
 
 	geekCli := NewGeekClient(header)
 
-	_, cookies, err := geekCli.Login(USER, PASSWD)
+	_, cookies, err := geekCli.Login(user, pass)
 	if err != nil {
-
-		panic(err)
+		return nil, err
 	}
-
-	// // log.Println(info)
 
 	sks := []string{}
 	for _, c := range cookies {
 		sks = append(sks, c.Name+"="+c.Value)
 	}
 
-	// sks = append(sks, "GCESS=BAUEAAAAAAkBAQgBAwIEJ0DJWwoEAAAAAAEEu6APAAYEwnL9kAwBAQsCBAAEBIBRAQADBCdAyVsHBJ2WMgs-")
-	// sks = append(sks, "GCID=7bff37f-22bec2f-2fbe82a-0203dde")
-	// sks = append(sks, "SERVERID=fe79ab1762e8fabea8cbf989406ba8f4|1539915816|1539915647")
-	// sks = append(sks, "_ga=GA1.2.1560661455.1535373390")
-	// sks = append(sks, "_gid=GA1.2.1481632964.1539915651")
-
 	header.Add("cookie", strings.Join(sks, "; "))
 
 	geekCli = NewGeekClient(geekCli.Header)
-	// geekCli := NewGeekClient(header)
-
-	// cookies, err := LoginByChrome(USER, PASSWD)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// fmt.Println(products.Data)
-	do(geekCli)
-}
-
-func do(geekCli *GeekClient) {
 
 	products, err := geekCli.MyProducts()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	// articleIDs := []int{}
+	addHTML := []string{}
 
 	for _, product := range products {
 
-		fmt.Println("product.Title", product.ID)
+		log.Println("product.Title", product.ID)
 
 		switch product.ID {
 		case 1, 2, 3:
 		default:
-			fmt.Println("skip", product.Title)
+			log.Println("skip", product.Title)
 			continue
 		}
 
 		for _, item := range product.List {
 
-			fmt.Println("item.Title", item.Title)
+			log.Println("item.Title", item.Title)
 
 			articleList, err := geekCli.ColumnArticlesAll(item.Extra.ColumnID)
 			if err != nil {
-				log.Fatal(err)
+				return nil, errors.Wrap(err, "ColumnArticlesAll")
 			}
 
-			fmt.Println("get articleList", len(articleList))
+			log.Println("get articleList", len(articleList))
 			// break
 
 			for _, v := range articleList {
@@ -112,13 +281,13 @@ func do(geekCli *GeekClient) {
 				item.Extra.ColumnTitle = strings.Replace(item.Extra.ColumnTitle, "/", "|", -1)
 				v.ArticleTitle = strings.Replace(v.ArticleTitle, "/", "|", -1)
 
-				dir := fmt.Sprintf("./data/%s/%s/%s", product.Title, item.Extra.ColumnTitle, v.ArticleTitle)
+				dir := filepath.Join(conf.DataDir, product.Title, item.Extra.ColumnTitle, v.ArticleTitle)
 
 				// check exists
 				if _, err := os.Stat(dir); os.IsNotExist(err) {
 					os.MkdirAll(dir, os.ModePerm)
 				} else {
-					if !Force {
+					if !conf.Force {
 						continue
 					}
 
@@ -126,37 +295,37 @@ func do(geekCli *GeekClient) {
 
 				info, err := geekCli.ArticleInfo(v.ID)
 				if err != nil {
-					log.Fatal(err)
+					return nil, errors.Wrap(err, "ArticleInfo")
 				}
 
 				commentList, err := geekCli.ArticleCommentsAll(info.ID)
 				if err != nil {
-					log.Fatal(err)
+					return nil, errors.Wrap(err, "ArticleCommentsAll")
 				}
 
-				if SaveJSON {
+				if conf.SaveJSON {
 					err = SaveJSONInfo(filepath.Join(dir, "data.json"), v)
 					if err != nil {
-						log.Fatal(err)
+						return nil, errors.Wrap(err, "SaveJSONInfo")
 					}
 					infopath := filepath.Join(dir, "info.json")
 					err = SaveJSONInfo(infopath, info)
 					if err != nil {
-						log.Fatal(err)
+						return nil, errors.Wrap(err, "SaveJSONInfo")
 					}
 
-					fmt.Println("write json ", infopath)
+					log.Println("write json ", infopath)
 
 					comentPath := filepath.Join(dir, "commentList.json")
 					err = SaveJSONInfo(comentPath, commentList)
 					if err != nil {
-						log.Fatal(err)
+						return nil, errors.Wrap(err, "SaveJSONInfo")
 					}
 
-					fmt.Println("write json ", comentPath)
+					log.Println("write json ", comentPath)
 				}
 
-				if SaveStatic {
+				if conf.SaveStatic {
 
 					if strings.HasPrefix(info.AudioDownloadURL, "http") {
 
@@ -165,15 +334,15 @@ func do(geekCli *GeekClient) {
 						if _, err := os.Stat(mp3Path); os.IsNotExist(err) {
 							mp3, err := geekCli.GetResource(info.AudioDownloadURL)
 							if err != nil {
-								log.Fatal(err)
+								return nil, errors.Wrap(err, "GetResource")
 							}
 
 							err = ioutil.WriteFile(mp3Path, mp3, os.ModePerm)
 							if err != nil {
-								log.Fatal(err)
+								return nil, errors.Wrap(err, "WriteFile")
 							}
 
-							fmt.Println("write mp3 ", mp3Path)
+							log.Println("write mp3 ", mp3Path)
 						}
 
 						// info.AudioDownloadURL = "./" + filepath.Base(mp3Path)
@@ -187,10 +356,10 @@ func do(geekCli *GeekClient) {
 
 							err = HLSdownload(info.VideoMediaMap.Hd.URL, mp4Path)
 							if err != nil {
-								log.Fatal(err)
+								return nil, errors.Wrap(err, "HLSdownload")
 							}
 
-							fmt.Println("write mp4 ", mp4Path)
+							log.Println("write mp4 ", mp4Path)
 						}
 
 						// info.VideoMediaMap.Hd.URL = "./" + filepath.Base(mp4Path)
@@ -205,15 +374,19 @@ func do(geekCli *GeekClient) {
 				}
 
 				htmlPath := filepath.Join(dir, "index.html")
-				ioutil.WriteFile(htmlPath, []byte(html), os.ModePerm)
+				if err := ioutil.WriteFile(htmlPath, []byte(html), os.ModePerm); err != nil {
+					return nil, errors.Wrap(err, "WriteFile")
+				}
 
-				fmt.Println("write html ", htmlPath)
+				addHTML = append(addHTML, dir)
+				log.Println("write html ", htmlPath)
 
 			}
 
 		}
 
 	}
+	return addHTML, nil
 }
 
 // SaveJSONInfo SaveJSONInfo
@@ -225,4 +398,62 @@ func SaveJSONInfo(fpath string, data interface{}) error {
 	}
 
 	return ioutil.WriteFile(fpath, json, os.ModePerm)
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+)
+
+// RandStringBytesMaskImprSrc RandStringBytesMaskImprSrc
+func RandStringBytesMaskImprSrc(n int) string {
+	var src = rand.NewSource(time.Now().UnixNano())
+	b := make([]byte, n)
+	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = src.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
+}
+
+func genBaseAuth(user, pass string) *bytes.Buffer {
+	b := new(bytes.Buffer)
+	b.WriteString(user)
+	b.WriteString(":")
+	b.WriteString("{SHA}")
+	b.WriteString(GetSha(pass))
+	// b.WriteString("\n")
+	return b
+}
+
+// GetSha GetSha
+func GetSha(password string) string {
+	s := sha1.New()
+	s.Write([]byte(password))
+	passwordSum := []byte(s.Sum(nil))
+	return base64.StdEncoding.EncodeToString(passwordSum)
+}
+
+// SendToMail SendToMail
+func SendToMail(subject, body string) error {
+	if len(Conf.Emails) == 0 {
+		return nil
+	}
+	hp := strings.Split(Conf.SMTP.Host, ":")
+	auth := smtp.PlainAuth("", Conf.SMTP.User, Conf.SMTP.Pass, hp[0])
+
+	msg := fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s\r\n", Conf.Emails[0], subject, body)
+
+	return smtp.SendMail(Conf.SMTP.Host, auth, Conf.SMTP.User, Conf.Emails, []byte(msg))
 }
