@@ -158,7 +158,7 @@ func updateIndex(dir string) error {
 		// 父级名称
 		dirName := filepath.Dir(cpath)
 
-		log.Println("dir:", dir, "path:", path, "cpath:", cpath, "dirname:", dirName)
+		// log.Println("dir:", dir, "path:", path, "cpath:", cpath, "dirname:", dirName)
 
 		if !info.IsDir() && !strings.HasSuffix(info.Name(), ".html") {
 			return nil
