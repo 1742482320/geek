@@ -84,8 +84,11 @@ func main() {
 }
 
 var downloading int32
+var lastDownload time.Time
 
 func do(updatePwd bool) error {
+
+	lastDownload = time.Now()
 
 	if atomic.LoadInt32(&downloading) == 1 {
 		fmt.Println("downloading return")

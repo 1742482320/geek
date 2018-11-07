@@ -21,7 +21,7 @@
 		<div class="container">
       <div class="row">
         <div class="col-md-12">
-					<h2>大神来学习了-<a href="javascript:;;" id="updateBtn">更新</a></h2>
+					<h2>大神来学习了-<a href="javascript:;;" id="updateBtn">更新(<span id="lastTime"></span>)</a></h2>
           <div id="treeview1" class=""></div>
         </div>
         
@@ -45,9 +45,14 @@ $(function() {
 	$("#updateBtn").on("click",function(e){
 		e.preventDefault()
 		$.post("/api/sync",function(data){
-			alert(data)
-		})
+			alert(data.msg)
+			$('#lastTime').text(data.time)
+		},"json")
 	})
+
+	$.post("/api/time",function(data){
+		$('#lastTime').text(data.time)
+	},"json")
 });
 </script>
 </body>

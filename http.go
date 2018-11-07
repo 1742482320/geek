@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync/atomic"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -35,15 +36,30 @@ func StartHTTP(conf *Config) error {
 	}))
 
 	e.POST("/api/sync", func(c echo.Context) error {
+		ret := map[string]string{}
+
+		ret["time"] = lastDownload.Format("2006-01-02 15:04:05")
+
 		if atomic.LoadInt32(&downloading) == 1 {
-			return c.String(http.StatusOK, "已运行同步，请稍等片刻")
+			ret["msg"] = "已运行同步，请稍等片刻"
+			return c.JSON(http.StatusOK, ret)
 		}
+
+		ret["time"] = time.Now().Format("2006-01-02 15:04:05")
 		go func() {
 			if err := do(false); err != nil {
 				fmt.Println(err)
 			}
 		}()
-		return c.String(http.StatusOK, "starting")
+
+		ret["msg"] = "starting"
+		return c.JSON(http.StatusOK, ret)
+	})
+
+	e.POST("/api/time", func(c echo.Context) error {
+		ret := map[string]string{}
+		ret["time"] = lastDownload.Format("2006-01-02 15:04:05")
+		return c.JSON(http.StatusOK, ret)
 	})
 	// Routes
 	e.Static("/", conf.DataDir)
