@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"sync/atomic"
+
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
@@ -30,6 +34,17 @@ func StartHTTP(conf *Config) error {
 		return false, nil
 	}))
 
+	e.POST("/api/sync", func(c echo.Context) error {
+		if atomic.LoadInt32(&downloading) == 1 {
+			return c.String(http.StatusOK, "已运行同步，请稍等片刻")
+		}
+		go func() {
+			if err := do(false); err != nil {
+				fmt.Println(err)
+			}
+		}()
+		return c.String(http.StatusOK, "starting")
+	})
 	// Routes
 	e.Static("/", conf.DataDir)
 

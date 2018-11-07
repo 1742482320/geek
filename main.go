@@ -16,6 +16,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -38,26 +39,30 @@ func main() {
 
 	log.Println(Conf)
 
-	authData, err := ioutil.ReadFile("./auth")
-	if err == nil {
-		Conf.HTTP.BasicAuth = []string{string(authData)}
-	}
-
 	go func() {
 		if err := StartHTTP(Conf); err != nil {
 			panic(err)
 		}
 	}()
 
+	authData, err := ioutil.ReadFile("./auth")
+	if err != nil || len(authData) == 0 {
+		if err := updatePassword("初始化密码"); err != nil {
+			panic(err)
+		}
+	} else {
+		Conf.HTTP.BasicAuth = []string{string(authData)}
+	}
+
 	if Conf.RunOnStart {
-		if err := do(); err != nil {
+		if err := do(false); err != nil {
 			panic(err)
 		}
 	}
 
 	cron := cron.New()
 	cron.AddFunc(Conf.CronEntry, func() {
-		if err := do(); err != nil {
+		if err := do(true); err != nil {
 			log.Println(err)
 		}
 	})
@@ -78,7 +83,18 @@ func main() {
 	}
 }
 
-func do() error {
+var downloading int32
+
+func do(updatePwd bool) error {
+
+	if atomic.LoadInt32(&downloading) == 1 {
+		fmt.Println("downloading return")
+		return nil
+	}
+
+	atomic.StoreInt32(&downloading, 1)
+
+	defer atomic.StoreInt32(&downloading, 0)
 
 	lines, err := downloadAll(Conf)
 	if err != nil {
@@ -89,19 +105,30 @@ func do() error {
 		return err
 	}
 
+	if updatePwd {
+		if err := updatePassword(strings.Join(lines, "\n")); err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+func updatePassword(body string) error {
 	user := fmt.Sprintf("uc%d", rand.Intn(60))
 	pass := RandStringBytesMaskImprSrc(6)
 
-	body := new(bytes.Buffer)
-	body.WriteString(user)
-	body.WriteString(":")
-	body.WriteString(pass)
-	body.WriteString("\n")
+	buf := new(bytes.Buffer)
+	buf.WriteString(user)
+	buf.WriteString(":")
+	buf.WriteString(pass)
+	buf.WriteString("\n")
 
-	body.WriteString(strings.Join(lines, "\n"))
+	buf.WriteString(body)
 
 	// SendToMail
-	if err := SendToMail("大婶，还学得动吗？", body.String()); err != nil {
+	if err := SendToMail("大婶，还学得动吗？", buf.String()); err != nil {
 		return errors.Wrap(err, "SendToMail")
 	}
 
@@ -114,8 +141,8 @@ func do() error {
 	if err := ioutil.WriteFile("./auth", []byte(auth), os.ModePerm); err != nil {
 		return errors.Wrap(err, "WriteFile")
 	}
-	return nil
 
+	return nil
 }
 
 // IndexNode IndexNode

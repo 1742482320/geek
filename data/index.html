@@ -21,7 +21,7 @@
 		<div class="container">
       <div class="row">
         <div class="col-md-12">
-          <h2>大神来学习了</h2>
+					<h2>大神来学习了-<a href="javascript:;;" id="updateBtn">更新</a></h2>
           <div id="treeview1" class=""></div>
         </div>
         
@@ -34,16 +34,21 @@
 	<script src="data.js"></script>
 	<script type="text/javascript">
 
-	  		$(function() {
-        $('#treeview1').treeview({
-          data: IndexData,
-          //enableLinks:true,
-          onNodeSelected: function(event, data) {
-            window.location.href = data.href
-          },
-        });
-
-  		});
-	  	</script>
+$(function() {
+	$('#treeview1').treeview({
+		data: IndexData,
+		//enableLinks:true,
+		onNodeSelected: function(event, data) {
+			window.location.href = data.href
+		},
+	});
+	$("#updateBtn").on("click",function(e){
+		e.preventDefault()
+		$.post("/api/sync",function(data){
+			alert(data)
+		})
+	})
+});
+</script>
 </body>
 </html>
