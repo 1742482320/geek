@@ -1,59 +1,92 @@
 ﻿<!doctype html>
 <html lang="zh">
+
 <head>
 	<meta charset="UTF-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> 
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>/</title>
 	<!-- <link href="http://www.jq22.com/jquery/bootstrap-3.3.4.css" rel="stylesheet"> -->
-  <link href="css/bootstrap.min.css" rel="stylesheet">
+	<link href="css/bootstrap.min.css" rel="stylesheet">
 
 	<style type="text/css">
-		.jq22-header{margin-bottom: 15px;font-family: "Segoe UI", "Lucida Grande", Helvetica, Arial, "Microsoft YaHei", FreeSans, Arimo, "Droid Sans", "wenquanyi micro hei", "Hiragino Sans GB", "Hiragino Sans GB W3", "FontAwesome", sans-serif;}
-		.jq22-icon{color: #fff;}
+		.jq22-header {
+			margin-bottom: 15px;
+			font-family: "Segoe UI", "Lucida Grande", Helvetica, Arial, "Microsoft YaHei", FreeSans, Arimo, "Droid Sans", "wenquanyi micro hei", "Hiragino Sans GB", "Hiragino Sans GB W3", "FontAwesome", sans-serif;
+		}
+
+		.jq22-icon {
+			color: #fff;
+		}
 	</style>
 	<!--[if IE]>
 		<script src="http://libs.useso.com/js/html5shiv/3.7/html5shiv.min.js"></script>
 	<![endif]-->
 </head>
+
 <body>
-	
-		<div class="container">
-      <div class="row">
-        <div class="col-md-12">
-					<h2>大神来学习了-<a href="javascript:;;" id="updateBtn">更新(<span id="lastTime"></span>)</a></h2>
-          <div id="treeview1" class=""></div>
-        </div>
-        
-      </div>
-    </div>
-	    
-	
+
+	<div class="container">
+		<div class="row">
+			<div class="col-md-12">
+				<h2>大神来学习了-
+					<a href="javascript:;;" id="updateBtn">更新(
+						<span id="lastTime"></span>)</a>
+				</h2>
+				<div id="treeview1" class=""></div>
+			</div>
+
+		</div>
+	</div>
+
+
 	<script src="js/jquery.min.js"></script>
 	<script src="js/bootstrap-treeview.min.js"></script>
 	<script src="data.js"></script>
 	<script type="text/javascript">
 
-$(function() {
-	$('#treeview1').treeview({
-		data: IndexData,
-		//enableLinks:true,
-		onNodeSelected: function(event, data) {
-			window.location.href = data.href
-		},
-	});
-	$("#updateBtn").on("click",function(e){
-		e.preventDefault()
-		$.post("/api/sync",function(data){
-			alert(data.msg)
-			$('#lastTime').text(data.time)
-		},"json")
-	})
+		$(function () {
 
-	$.post("/api/time",function(data){
-		$('#lastTime').text(data.time)
-	},"json")
-});
-</script>
+			// 展开的nodeid列表
+			if (localStorage.openid) {
+				var openid = localStorage.openid.split(',')
+			} else {
+				var openid = []
+			}
+
+			$('#treeview1').treeview({
+				data: IndexData,
+				//enableLinks:true,
+				onNodeSelected:  function (event,  data)  {
+					localStorage.openid = openid
+					window.location.href = data.href
+				},
+				onNodeExpanded: function (event, data) {
+					console.log(openid)
+					openid.push(data.nodeId)
+				}
+			});
+			$("#updateBtn").on("click", function (e) {
+				e.preventDefault()
+				$.post("/api/sync", function (data) {
+					alert(data.msg)
+					$('#lastTime').text(data.time)
+				}, "json")
+			})
+
+			$.post("/api/time", function (data) {
+				$('#lastTime').text(data.time)
+			}, "json")
+
+			for (var i = 0; i < openid.length; i++) {
+				$('#treeview1').treeview('expandNode', [+openid[i], { levels: 1, silent: true }]);
+			}
+
+		});
+		// $(window).beforeunload(function(){
+		// 		localStorage.openid = ''
+    // }); 
+	</script>
 </body>
+
 </html>
