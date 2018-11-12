@@ -47,24 +47,28 @@
 
 		$(function () {
 
-			// 展开的nodeid列表
-			if (localStorage.openid) {
-				var openid = localStorage.openid.split(',')
-			} else {
-				var openid = []
+			if (window.localStorage) {
+				if (localStorage.openid) {
+					var openid = localStorage.openid.split(',')
+				} else {
+					var openid = []
+				}
+			}
+			else {
+				var nohasStorage = true
+				alert("浏览暂不支持localStorage")
 			}
 
 			$('#treeview1').treeview({
 				data: IndexData,
 				//enableLinks:true,
-				onNodeSelected:  function (event,  data)  {
-					localStorage.openid = openid
+				onNodeSelected: function (event, data) {
+					openid = []
+					if (!nohasStorage) {
+						getallnodeid(data.nodeId)
+					}
 					window.location.href = data.href
 				},
-				onNodeExpanded: function (event, data) {
-					console.log(openid)
-					openid.push(data.nodeId)
-				}
 			});
 			$("#updateBtn").on("click", function (e) {
 				e.preventDefault()
@@ -78,8 +82,21 @@
 				$('#lastTime').text(data.time)
 			}, "json")
 
+			// 展开
 			for (var i = 0; i < openid.length; i++) {
 				$('#treeview1').treeview('expandNode', [+openid[i], { levels: 1, silent: true }]);
+			}
+
+			// 获取nodeid
+			function getallnodeid(nodeid) {
+				openid.unshift(nodeid)
+				if ($('#treeview1').treeview('getNode', nodeid).parentId >= 0) {
+					getallnodeid($('#treeview1').treeview('getNode', nodeid).parentId)
+				}
+				else {
+					localStorage.openid = openid
+					return
+				}
 			}
 
 		});
